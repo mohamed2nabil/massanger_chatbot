@@ -1,0 +1,212 @@
+{
+  "name": "chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "fb-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "324436cc-4684-4eee-bdc9-e431fbe51db7",
+      "name": "Webhook",
+      "webhookId": "f85c678e-6556-4e99-ba19-8324a9eb965e"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        208,
+        -96
+      ],
+      "id": "baf5010c-adc6-431f-bd5a-8ddd681d9d42",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e23f0b91-2c75-4900-a43d-fbed5f45a1f0",
+              "name": "text",
+              "value": "={{ $json.body.entry[0].messaging[0].message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        96
+      ],
+      "id": "47329a21-8f71-44a2-af78-0cb2f30525d0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=You are a professional AI Customer Service Assistant for a software solutions brand. Your goal is to assist clients reaching out to the (Code every minute) page.\n\nScope: Provide helpful, concise, and technical support for programming-related questions and software services.\n\nSimple Inquiries: If the user's question is straightforward (e.g., general info, simple code explanations, or service inquiries), provide a direct and professional answer.\n\nComplex Inquiries: If the request is complex (e.g., custom project development, deep technical debugging, or price negotiations), politely ask the user to contact us via WhatsApp for a detailed consultation.\n\nContact Info: The WhatsApp number for complex cases is: +201145252173.\n\nTone: Professional, helpful, and tech-savvy \nmake limet to answer to be at maxmal 20 word",
+          "enableStreaming": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        416,
+        96
+      ],
+      "id": "680fd220-50e9-4797-a5ba-2f0f3f21abe1",
+      "name": "AI Agent",
+      "notesInFlow": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        304
+      ],
+      "id": "3807da9c-9818-47e3-b853-ef7ba3f37af6",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages?access_token=EAAWAOXK38voBQb3duZChtWumCg0ucjgGZBf44ZCppS3nw15VCe5no5ArT8lAZAq5dV399bUpbMZCa5uz7LPTcN72OPZCpwahiVT9djyQEEHaCJDQbK9JAfuKo5FfgqIZCZBUuKahcsOu3mTtYrpv5T1DeZAvp8IILmmsIOeuQEMCpSwxTKP7ZCHpK3Gl7lOXY3aYZC9WYu2xANoycz9nXeR2uDTQAZDZD ",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $node[\"Webhook\"].json[\"body\"][\"entry\"][0][\"messaging\"][0][\"sender\"][\"id\"] }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": {{ JSON.stringify($json.output) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        976,
+        96
+      ],
+      "id": "3f7262c4-ed1f-41f5-8d3a-e68308fa48d3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        288,
+        304
+      ],
+      "id": "531677fd-a705-49b0-9ffb-cdb161235294",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "48WPnfozhK65klr9",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "timezone": "Africa/Cairo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "timeSavedPerExecution": 150
+  },
+  "versionId": "7dbe73ff-b8ce-4855-bbcc-37a461b780d5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "910611afce3162180971ae487eba928bb55933be7b8d2b6af1ee54fe343471a2"
+  },
+  "id": "ebPCjbCOpLTYkrOp",
+  "tags": []
+}
